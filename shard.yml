@@ -1,0 +1,21 @@
+name: microtrack
+version: 0.1.0
+
+authors:
+  - AndrewCherabaev <a.cherabaev@mediasoft.team>
+
+repository: https://github.com/AndrewCherabaev/microtrack
+
+targets:
+  microtrack:
+    main: src/main.cr
+
+crystal: '>= 1.20.3'
+
+dependencies:
+  kemal:
+    github: kemalcr/kemal
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+
+license: MIT

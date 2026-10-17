@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "microtrack": {
+      "command": "node",
+      "args": ["/Users/andrew/Projects/minitrack/microtrack-app/mcp/dist/index.js"],
+      "env": {
+        "MICROTRACK_URL": "http://localhost:3000"
+      }
+    }
+  }
+}

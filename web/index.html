@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>μtrack</title>
+<style>
+  :root {
+    --background: #f6f5f2;
+    --surface: #ffffff;
+    --text: #1f2328;
+    --text-muted: #6b7177;
+    --border: #d9d6d1;
+    --accent: #0b62c4;
+    --status-new: #0b62c4;
+    --status-todo: #6f5bd4;
+    --status-in-progress: #c47f0a;
+    --status-done: #2f8f4a;
+    --status-archived: #8a8f98;
+    --status-bg-new: #e7f0fb;
+    --status-bg-todo: #efebfb;
+    --status-bg-in-progress: #fdf3e3;
+    --status-bg-done: #e8f5ec;
+    --status-bg-archived: #eceaec;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --size-base: 15px;
+    --size-small: 13px;
+    --size-title: 18px;
+    --page-gutter: 16px;
+    --column-gap: 12px;
+    --column-padding: 12px;
+    --card-gap: 8px;
+    --card-padding: 10px;
+    --radius: 6px;
+    --radius-large: 10px;
+    --column-min-width: 220px;
+    --max-board-width: 1200px;
+    --shadow-card: 0 1px 2px rgba(31, 35, 40, 0.08);
+    --duration-fast: 120ms;
+    --duration-normal: 180ms;
+    --easing: ease-out;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: var(--size-base);
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  header {
+    max-width: var(--max-board-width);
+    margin: 0 auto;
+    padding: var(--page-gutter);
+    display: flex;
+    align-items: baseline;
+    gap: var(--column-gap);
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: var(--size-title);
+    font-weight: 500;
+  }
+
+  #new-task {
+    margin-left: auto;
+  }
+
+  .text-link {
+    flex: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font);
+    font-size: var(--size-small);
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .text-link:hover {
+    color: var(--text);
+  }
+
+  .button {
+    flex: none;
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius);
+    padding: var(--card-padding) calc(var(--card-padding) * 1.6);
+    font-family: var(--font);
+    font-size: var(--size-base);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity var(--duration-fast) var(--easing);
+  }
+
+  .button:hover {
+    opacity: 0.9;
+  }
+
+  .button-muted {
+    background: var(--text-muted);
+  }
+
+  .board {
+    max-width: var(--max-board-width);
+    margin: 0 auto;
+    padding: 0 var(--page-gutter) var(--page-gutter);
+    display: flex;
+    gap: var(--column-gap);
+    overflow-x: auto;
+  }
+
+  .column {
+    flex: 1 1 0;
+    min-width: var(--column-min-width);
+    padding: var(--column-padding);
+    background: none;
+    border-radius: var(--radius);
+    transition: background var(--duration-normal) var(--easing);
+  }
+
+  .column h2 {
+    margin: 0 0 var(--card-gap);
+    font-size: var(--size-small);
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--card-gap);
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    border-left: 3px solid var(--border);
+    padding: var(--card-padding);
+    font-size: var(--size-base);
+  }
+
+  .card[data-status="new"] { border-left-color: var(--status-new); }
+  .card[data-status="todo"] { border-left-color: var(--status-todo); }
+  .card[data-status="in_progress"] { border-left-color: var(--status-in-progress); }
+  .card[data-status="done"] { border-left-color: var(--status-done); }
+  .card[data-status="archived"] { border-left-color: var(--status-archived); }
+
+  body.archived-hidden .column[data-status="archived"] {
+    display: none;
+  }
+
+  .card {
+    cursor: grab;
+    user-select: none;
+  }
+
+  .card.dragging {
+    cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(31, 35, 40, 0.18);
+    transform: rotate(1deg);
+  }
+
+  .column.drop-target {
+    background: var(--status-bg-new);
+  }
+  .column.drop-target[data-status="todo"] { background: var(--status-bg-todo); }
+  .column.drop-target[data-status="in_progress"] { background: var(--status-bg-in-progress); }
+  .column.drop-target[data-status="done"] { background: var(--status-bg-done); }
+  .column.drop-target[data-status="archived"] { background: var(--status-bg-archived); }
+
+  dialog {
+    border: none;
+    border-radius: var(--radius-large);
+    box-shadow: 0 12px 40px rgba(31, 35, 40, 0.22);
+    padding: var(--card-padding);
+    font-family: var(--font);
+    color: var(--text);
+    width: 280px;
+  }
+
+  dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  dialog p {
+    margin: 0 0 var(--card-gap);
+    font-size: var(--size-small);
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  dialog input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--card-padding);
+    font-family: var(--font);
+    font-size: var(--size-base);
+    color: var(--text);
+    margin-bottom: calc(var(--card-gap) * 2);
+  }
+
+  .modal-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--column-gap);
+  }
+</style>
+</head>
+<body class="archived-hidden">
+<header>
+  <h1>μtrack</h1>
+  <button class="button" id="new-task" type="button">новая задача</button>
+  <button class="button button-muted" id="archive-toggle" type="button">показать архив</button>
+</header>
+<main class="board">
+  <section class="column" data-status="new">
+    <h2>#new</h2>
+    <div class="cards"></div>
+  </section>
+  <section class="column" data-status="todo">
+    <h2>#todo</h2>
+    <div class="cards"></div>
+  </section>
+  <section class="column" data-status="in_progress">
+    <h2>#in_progress</h2>
+    <div class="cards"></div>
+  </section>
+  <section class="column" data-status="done">
+    <h2>#done</h2>
+    <div class="cards"></div>
+  </section>
+  <section class="column" data-status="archived">
+    <h2>#archived</h2>
+    <div class="cards"></div>
+  </section>
+</main>
+<dialog id="new-task-dialog">
+  <form>
+    <p>Задача</p>
+    <input id="task-title" name="title" type="text" autocomplete="off">
+    <div class="modal-buttons">
+      <button class="button" id="task-create" type="submit">создать</button>
+      <button class="text-link" id="task-cancel" type="button">отмена</button>
+    </div>
+  </form>
+</dialog>
+<script>
+(function () {
+  var STATUSES = ["new", "todo", "in_progress", "done", "archived"];
+  var POLL_INTERVAL_MS = 30000;
+  var tasks = [];
+  var pollTimer = null;
+  var dragId = null;
+
+  var toggle = document.getElementById("archive-toggle");
+  var dialog = document.getElementById("new-task-dialog");
+  var titleInput = document.getElementById("task-title");
+  var board = document.querySelector(".board");
+
+  function sync() {
+    var hidden = document.body.classList.contains("archived-hidden");
+    toggle.textContent = hidden ? "показать архив" : "скрыть архив";
+  }
+  toggle.addEventListener("click", function () {
+    document.body.classList.toggle("archived-hidden");
+    sync();
+  });
+  sync();
+
+  function cardNode(task) {
+    var article = document.createElement("article");
+    article.className = "card";
+    article.draggable = true;
+    article.dataset.id = task.id;
+    article.dataset.status = task.status;
+    article.textContent = task.title;
+    article.addEventListener("dragstart", function (event) {
+      dragId = task.id;
+      article.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", String(task.id));
+    });
+    article.addEventListener("dragend", function () {
+      dragId = null;
+      article.classList.remove("dragging");
+    });
+    return article;
+  }
+
+  function renderBoard() {
+    STATUSES.forEach(function (status) {
+      var column = board.querySelector('.column[data-status="' + status + '"] .cards');
+      column.textContent = "";
+      tasks.forEach(function (task) {
+        if (task.status === status) {
+          column.appendChild(cardNode(task));
+        }
+      });
+    });
+  }
+
+  function fetchTasks() {
+    fetch("/api/tasks")
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("api " + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        tasks = data;
+        renderBoard();
+      })
+      .catch(function () {
+      });
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(fetchTasks, POLL_INTERVAL_MS);
+  }
+
+  function stopPolling() {
+    if (pollTimer !== null) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function patchStatus(id, status, onFail) {
+    fetch("/api/tasks/" + id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: status })
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error("api " + response.status);
+      }
+    }).catch(function () {
+      tasks.forEach(function (task) {
+        if (String(task.id) === String(id)) {
+          task.status = onFail;
+        }
+      });
+      renderBoard();
+    });
+  }
+
+  STATUSES.forEach(function (status) {
+    var column = board.querySelector('.column[data-status="' + status + '"]');
+    column.addEventListener("dragover", function (event) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      column.classList.add("drop-target");
+    });
+    column.addEventListener("dragleave", function () {
+      column.classList.remove("drop-target");
+    });
+    column.addEventListener("drop", function (event) {
+      event.preventDefault();
+      column.classList.remove("drop-target");
+      var id = event.dataTransfer.getData("text/plain");
+      var moved = tasks.filter(function (task) {
+        return String(task.id) === id;
+      })[0];
+      if (!moved || moved.status === status) {
+        return;
+      }
+      var previous = moved.status;
+      moved.status = status;
+      renderBoard();
+      patchStatus(id, status, previous);
+    });
+  });
+
+  dialog.addEventListener("close", function () {
+    fetchTasks();
+    startPolling();
+  });
+
+  document.getElementById("task-cancel").addEventListener("click", function () {
+    dialog.close();
+  });
+
+  dialog.querySelector("form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var title = titleInput.value.trim();
+    if (title === "") {
+      dialog.close();
+      return;
+    }
+    fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title })
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error("api " + response.status);
+      }
+      titleInput.value = "";
+      dialog.close();
+    }).catch(function () {
+    });
+  });
+
+  document.getElementById("new-task").addEventListener("click", function () {
+    if (!dialog.open) {
+      stopPolling();
+      dialog.showModal();
+      titleInput.focus();
+    }
+  });
+
+  startPolling();
+  fetchTasks();
+})();
+</script>
+</body>
+</html>

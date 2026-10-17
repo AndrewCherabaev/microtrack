@@ -1,0 +1,29 @@
+{
+  "name": "microtrack-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "author": "AndrewCherabaev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AndrewCherabaev/microtrack"
+  },
+  "bin": {
+    "microtrack-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}
